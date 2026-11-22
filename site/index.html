@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>简历快做 - 免费在线简历生成器，3 分钟做出专业简历</title>
+  <meta name="description" content="免费在线简历制作工具，多套专业模板，实时预览，一键导出 PDF。无需注册，数据只保存在你的浏览器里。" />
+  <meta name="keywords" content="简历模板,在线简历,简历制作,简历生成器,个人简历,应届生简历,PDF简历" />
+  <meta property="og:title" content="简历快做 - 免费在线简历生成器" />
+  <meta property="og:description" content="多套专业模板，实时预览，一键下载 PDF 或保存图片，手机也能做。" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="config.js"></script>
+</head>
+<body>
+  <header class="topbar no-print">
+    <div class="brand"><span class="logo">简</span><span id="siteName">简历快做</span></div>
+    <div class="top-actions">
+      <button class="btn ghost" id="btnSample">填充示例</button>
+      <button class="btn ghost" id="btnClear">清空</button>
+      <button class="btn" id="btnImage">保存图片</button>
+      <button class="btn primary" id="btnExport">下载 PDF</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="editor no-print" id="editor">
+      <section class="card">
+        <h3>选择模板</h3>
+        <div class="templates" id="templates"></div>
+        <div class="colors" id="colors"></div>
+        <p class="pro-status" id="proStatus"></p>
+      </section>
+
+      <section class="card">
+        <h3>基本信息</h3>
+        <div class="photo-row">
+          <label class="photo-box" id="photoBox">
+            <input type="file" accept="image/*" id="photoInput" hidden />
+            <span>上传照片</span>
+          </label>
+          <div class="grid2 grow">
+            <input data-k="name" placeholder="姓名" />
+            <input data-k="title" placeholder="求职意向，如：前端工程师" />
+            <input data-k="phone" placeholder="电话" />
+            <input data-k="email" placeholder="邮箱" />
+            <input data-k="city" placeholder="所在城市" />
+            <input data-k="extra" placeholder="其他，如：3 年经验 / 期望薪资" />
+          </div>
+        </div>
+        <textarea data-k="summary" rows="3" placeholder="个人简介：用 2~3 句话介绍你的核心优势"></textarea>
+      </section>
+
+      <section class="card" data-list="education">
+        <h3>教育经历 <button class="add" data-add="education">+ 添加</button></h3>
+        <div class="items"></div>
+      </section>
+
+      <section class="card" data-list="work">
+        <h3>工作 / 实习经历 <button class="add" data-add="work">+ 添加</button></h3>
+        <div class="items"></div>
+      </section>
+
+      <section class="card" data-list="projects">
+        <h3>项目经历 <button class="add" data-add="projects">+ 添加</button></h3>
+        <div class="items"></div>
+      </section>
+
+      <section class="card">
+        <h3>专业技能</h3>
+        <textarea data-k="skills" rows="3" placeholder="每行一条，如：熟练使用 Excel 数据透视表"></textarea>
+        <h3 class="mt">证书 / 荣誉</h3>
+        <textarea data-k="awards" rows="2" placeholder="每行一条，如：CET-6 580 分"></textarea>
+      </section>
+
+      <p class="privacy">所有内容只保存在你自己的浏览器里，不会上传到任何服务器。</p>
+    </aside>
+
+    <section class="preview-wrap">
+      <div class="paper" id="paper"></div>
+    </section>
+  </main>
+
+  <div class="modal no-print" id="payModal" hidden>
+    <div class="modal-box">
+      <button class="close" id="payClose">×</button>
+      <h2>解锁全部高级模板</h2>
+      <p class="price">¥<b id="price">9.9</b> <small>一次购买，永久使用</small></p>
+      <ul class="perks">
+        <li>解锁全部高级模板，后续新增模板免费用</li>
+        <li>导出的 PDF 不带水印</li>
+        <li>不限导出次数，可以随时修改</li>
+      </ul>
+      <img id="payQr" class="qr" alt="收款码" hidden />
+      <a class="btn primary block" id="buyLink" target="_blank" rel="noopener">去购买激活码</a>
+      <p class="hint" id="buyHint"></p>
+      <div class="code-row">
+        <input id="codeInput" placeholder="输入激活码，如 ABCD-EFGH-WXYZ" />
+        <button class="btn primary" id="codeBtn">激活</button>
+      </div>
+      <p class="code-msg" id="codeMsg"></p>
+    </div>
+  </div>
+
+  <div class="modal no-print" id="imgModal" hidden>
+    <div class="modal-box wide">
+      <button class="close" id="imgClose">×</button>
+      <h2>简历已生成</h2>
+      <p class="hint" id="imgHint">手机上长按图片可以保存到相册；电脑上点下面的按钮下载。</p>
+      <div class="img-scroll"><img id="imgOut" alt="简历图片" /></div>
+      <a class="btn primary block" id="imgDownload" download="简历.png">下载图片</a>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+  <button class="fab no-print" id="fab">看预览</button>
+
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
