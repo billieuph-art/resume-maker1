@@ -7,6 +7,7 @@ window.APP_CONFIG = {
   buyHint: "在闲鱼搜索「简历快做 激活码」，付款后自动发货",
   // 收款二维码图片（放到同目录，例如 pay.png），留空则不显示
   payQrImage: "",
-  // 必须与 tools/gen-codes.js 里的 SALT 一致；改了之后旧码全部失效
-  salt: "jlkz-2026-change-me",
+  // Supabase 项目设置 → API 里的 Project URL 和 anon / publishable key（这个 key 本来就是公开给网页用的）
+  supabaseUrl: "",
+  supabaseKey: "",
 };
