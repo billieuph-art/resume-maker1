@@ -1,8 +1,8 @@
 (() => {
   const CFG = window.APP_CONFIG;
   const STORE_KEY = "jlkz_resume_v1";
-  const PRO_KEY = "jlkz_pro_v1";
-  const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const PRO_KEY = "jlkz_pro_code_v2";
+  const DEVICE_KEY = "jlkz_device_v1";
 
   const TEMPLATES = [
     { id: "classic", name: "经典", pro: false },
@@ -43,7 +43,7 @@
   };
 
   let state = load();
-  let pro = localStorage.getItem(PRO_KEY) === "1";
+  let pro = !!localStorage.getItem(PRO_KEY);
 
   function load() {
     try { return Object.assign(empty(), JSON.parse(localStorage.getItem(STORE_KEY)) || {}); }
@@ -164,19 +164,57 @@
   }
 
   // ---------- 激活码 ----------
-  async function sha256Hex(str) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  function deviceId() {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      id = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
   }
-  async function verifyCode(raw) {
-    const code = raw.trim().toUpperCase().replace(/\s/g, "");
-    const m = code.match(/^([A-Z2-9]{4})-?([A-Z2-9]{4})-?([A-Z2-9]{4})$/);
-    if (!m) return false;
-    const hex = await sha256Hex(CFG.salt + m[1] + m[2]);
-    let sum = "";
-    for (let i = 0; i < 4; i++) sum += ALPHABET[parseInt(hex.substr(i * 2, 2), 16) % ALPHABET.length];
-    return sum === m[3];
+
+  async function callRpc(fn, code) {
+    if (!CFG.supabaseUrl || !CFG.supabaseKey) throw new Error("not_configured");
+    const res = await fetch(`${CFG.supabaseUrl.replace(/\/$/, "")}/rest/v1/rpc/${fn}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: CFG.supabaseKey },
+      body: JSON.stringify({ p_code: code, p_device: deviceId() }),
+    });
+    if (!res.ok) throw new Error("http_" + res.status);
+    return res.json();
   }
+
+  const normalizeCode = (raw) => raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+  async function redeem(raw) {
+    const code = normalizeCode(raw);
+    if (code.length !== 12) return { ok: false, reason: "invalid" };
+    try { return await callRpc("redeem_code", code); }
+    catch (e) { return { ok: false, reason: e.message === "not_configured" ? "not_configured" : "network" }; }
+  }
+
+  // 已激活的设备每次打开页面复查一次；网络出错时保留激活状态，只有服务器明确说无效才取消
+  async function recheck() {
+    const code = localStorage.getItem(PRO_KEY);
+    if (!code) return;
+    try {
+      const r = await callRpc("check_code", code);
+      if (r && r.ok === false) {
+        localStorage.removeItem(PRO_KEY);
+        pro = false;
+        renderPickers(); update();
+      }
+    } catch {}
+  }
+
+  const REDEEM_ERRORS = {
+    invalid: "激活码无效，请检查后重试。",
+    used: "这个激活码已经在其他设备上使用过了。一个激活码只能激活一台设备。",
+    network: "网络异常，请稍后重试。",
+    not_configured: "激活系统还没配置好，请联系卖家。",
+    bad_device: "浏览器异常，请刷新页面后重试。",
+  };
 
   function openPay() { $("#payModal").hidden = false; $("#codeMsg").textContent = ""; }
   function closePay() { $("#payModal").hidden = true; }
@@ -190,16 +228,23 @@
     $("#payModal").onclick = (e) => { if (e.target.id === "payModal") closePay(); };
     $("#codeBtn").onclick = async () => {
       const msg = $("#codeMsg");
-      if (await verifyCode($("#codeInput").value)) {
+      const btn = $("#codeBtn");
+      if (btn.disabled) return;
+      btn.disabled = true;
+      msg.style.color = "#64748b";
+      msg.textContent = "正在验证…";
+      const r = await redeem($("#codeInput").value);
+      btn.disabled = false;
+      if (r.ok) {
         pro = true;
-        localStorage.setItem(PRO_KEY, "1");
+        localStorage.setItem(PRO_KEY, normalizeCode($("#codeInput").value));
         msg.style.color = "#16a34a";
         msg.textContent = "激活成功！全部高级模板已解锁。";
         renderPickers(); update();
         setTimeout(closePay, 1200);
       } else {
         msg.style.color = "#ef4444";
-        msg.textContent = "激活码无效，请检查后重试。";
+        msg.textContent = REDEEM_ERRORS[r.reason] || REDEEM_ERRORS.invalid;
       }
     };
   }
@@ -330,4 +375,5 @@
   initTop();
   initPay();
   refreshAll();
+  recheck();
 })();
