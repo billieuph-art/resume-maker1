@@ -1,1 +1,4 @@
 codes.txt
+*.secret
+.env
+admin-local.html

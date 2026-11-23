@@ -87,14 +87,15 @@
       <p class="price">¥<b id="price">9.9</b> <small>一次购买，永久使用</small></p>
       <ul class="perks">
         <li>解锁全部高级模板，后续新增模板免费用</li>
-        <li>导出的 PDF 不带水印</li>
+        <li>导出的 PDF / 图片都不带水印</li>
         <li>不限导出次数，可以随时修改</li>
+        <li>一个激活码绑定一台设备，换手机请联系卖家解绑</li>
       </ul>
       <img id="payQr" class="qr" alt="收款码" hidden />
       <a class="btn primary block" id="buyLink" target="_blank" rel="noopener">去购买激活码</a>
       <p class="hint" id="buyHint"></p>
       <div class="code-row">
-        <input id="codeInput" placeholder="输入激活码，如 ABCD-EFGH-WXYZ" />
+        <input id="codeInput" placeholder="输入激活码，如 ABCD-EFGH-WXYZ" autocomplete="off" spellcheck="false" maxlength="14" />
         <button class="btn primary" id="codeBtn">激活</button>
       </div>
       <p class="code-msg" id="codeMsg"></p>

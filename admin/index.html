@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>简历快做 · 激活码管理后台</title>
+  <style>
+    :root { --bg: #f8fafc; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --ok: #16a34a; --bad: #dc2626; --pri: #2563eb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .warn { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 10px 12px; border-radius: 10px; font-size: 13px; margin: 12px 0 20px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .card h2 { margin: 0 0 12px; font-size: 16px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 4px; }
+    input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+    .row > * { flex: 1; min-width: 140px; }
+    .btn { border: none; background: var(--pri); color: #fff; padding: 9px 14px; border-radius: 8px; cursor: pointer; font: inherit; white-space: nowrap; }
+    .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+    .btn.danger { background: var(--bad); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .stat { background: #f1f5f9; border-radius: 10px; padding: 12px; text-align: center; }
+    .stat b { display: block; font-size: 24px; }
+    .stat span { font-size: 12px; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    th { color: var(--muted); font-weight: 600; }
+    .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; }
+    .tag.unused { background: #dcfce7; color: #166534; }
+    .tag.used { background: #dbeafe; color: #1e40af; }
+    .tag.revoked { background: #fee2e2; color: #991b1b; }
+    .msg { font-size: 13px; min-height: 18px; margin-top: 8px; color: var(--muted); }
+    .msg.ok { color: var(--ok); }
+    .msg.err { color: var(--bad); }
+    .codes-box { width: 100%; min-height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
+    .tiny { font-size: 12px; color: var(--muted); }
+    @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>简历快做 · 激活码管理</h1>
+    <p class="tiny">这个页面不会部署到公开网站。用电脑本地打开，或自己托管在私密位置。密钥只保存在你本机浏览器，不会上传到任何第三方。</p>
+    <div class="warn">请用 <b>service_role</b>（secret）密钥登录。千万不要把它写进网站的 config.js，也不要发给买家或截图发到群里。</div>
+
+    <section class="card" id="loginCard">
+      <h2>连接 Supabase</h2>
+      <label>Project URL</label>
+      <input id="url" placeholder="https://xxxx.supabase.co" />
+      <label>service_role key（secret）</label>
+      <input id="key" type="password" placeholder="eyJhbGciOi..." autocomplete="off" />
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnLogin">连接并记住本机</button>
+        <button class="btn ghost" id="btnLogout">清除本机密钥</button>
+      </div>
+      <p class="msg" id="loginMsg"></p>
+    </section>
+
+    <section class="card" id="dash" hidden>
+      <h2>销售概览</h2>
+      <div class="stats" id="stats"></div>
+      <p class="tiny" style="margin-top:10px">「已激活」≈ 已卖出并被买家使用的激活码数量。</p>
+    </section>
+
+    <section class="card" id="genCard" hidden>
+      <h2>生成激活码</h2>
+      <div class="row">
+        <div>
+          <label>数量</label>
+          <input id="genN" type="number" value="100" min="1" max="2000" />
+        </div>
+        <button class="btn" id="btnGen">生成</button>
+        <button class="btn ghost" id="btnCopy" disabled>复制全部</button>
+        <button class="btn ghost" id="btnDl" disabled>下载 txt</button>
+      </div>
+      <p class="msg" id="genMsg"></p>
+      <textarea class="codes-box" id="genOut" readonly placeholder="生成的激活码会出现在这里，复制后导入闲鱼自动发货"></textarea>
+    </section>
+
+    <section class="card" id="listCard" hidden>
+      <h2>激活码列表</h2>
+      <div class="row">
+        <div>
+          <label>筛选</label>
+          <select id="filter">
+            <option value="unused">未使用（可卖）</option>
+            <option value="used">已激活</option>
+            <option value="revoked">已作废</option>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <button class="btn ghost" id="btnRefresh">刷新</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table>
+          <thead><tr><th>激活码</th><th>状态</th><th>设备</th><th>创建</th><th>激活</th><th>操作</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="msg" id="listMsg"></p>
+    </section>
+  </div>
+
+  <script>
+    const STORE = "jlkz_admin_v1";
+    const $ = (s) => document.querySelector(s);
+    const cfg = () => JSON.parse(sessionStorage.getItem(STORE) || localStorage.getItem(STORE) || "null");
+    const saveCfg = (c, remember) => {
+      sessionStorage.setItem(STORE, JSON.stringify(c));
+      if (remember) localStorage.setItem(STORE, JSON.stringify(c));
+      else localStorage.removeItem(STORE);
+    };
+
+    async function rpc(fn, body = {}) {
+      const c = cfg();
+      if (!c) throw new Error("未连接");
+      const res = await fetch(`${c.url.replace(/\/$/, "")}/rest/v1/rpc/${fn}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: c.key,
+          Authorization: `Bearer ${c.key}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const text = await res.text();
+      let data; try { data = JSON.parse(text); } catch { data = text; }
+      if (!res.ok) throw new Error((data && data.message) || text || res.status);
+      return data;
+    }
+
+    function fmtTime(t) {
+      if (!t) return "—";
+      return new Date(t).toLocaleString("zh-CN", { hour12: false });
+    }
+
+    async function refreshStats() {
+      const s = await rpc("admin_stats");
+      $("#stats").innerHTML = [
+        ["总数", s.total],
+        ["可卖（未用）", s.unused],
+        ["已激活", s.used],
+        ["已作废", s.revoked],
+      ].map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+    }
+
+    async function refreshList() {
+      const rows = await rpc("admin_list_codes", { p_filter: $("#filter").value, p_limit: 300 });
+      const tags = { unused: "未使用", used: "已激活", revoked: "已作废" };
+      $("#tbody").innerHTML = (rows || []).map((r) => `<tr>
+        <td><code>${r.code}</code></td>
+        <td><span class="tag ${r.status}">${tags[r.status] || r.status}</span></td>
+        <td>${r.devices}</td>
+        <td>${fmtTime(r.created_at)}</td>
+        <td>${fmtTime(r.first_used_at)}</td>
+        <td>
+          ${r.status !== "revoked" ? `<button class="btn ghost" data-unbind="${r.code}">解绑</button>` : ""}
+          ${r.status !== "revoked" ? `<button class="btn danger" data-revoke="${r.code}">作废</button>` : ""}
+        </td>
+      </tr>`).join("") || `<tr><td colspan="6">暂无数据</td></tr>`;
+      $("#listMsg").textContent = `共 ${(rows || []).length} 条`;
+    }
+
+    async function boot() {
+      const c = cfg();
+      if (!c) return;
+      $("#url").value = c.url;
+      $("#key").value = c.key;
+      try {
+        await refreshStats();
+        await refreshList();
+        $("#dash").hidden = $("#genCard").hidden = $("#listCard").hidden = false;
+        $("#loginMsg").className = "msg ok";
+        $("#loginMsg").textContent = "已连接";
+      } catch (e) {
+        $("#loginMsg").className = "msg err";
+        $("#loginMsg").textContent = "连接失败：" + e.message;
+      }
+    }
+
+    $("#btnLogin").onclick = async () => {
+      const url = $("#url").value.trim();
+      const key = $("#key").value.trim();
+      if (!url || !key) { $("#loginMsg").textContent = "请填写完整"; return; }
+      saveCfg({ url, key }, true);
+      await boot();
+    };
+    $("#btnLogout").onclick = () => {
+      sessionStorage.removeItem(STORE);
+      localStorage.removeItem(STORE);
+      location.reload();
+    };
+    $("#btnRefresh").onclick = async () => { await refreshStats(); await refreshList(); };
+    $("#filter").onchange = refreshList;
+
+    $("#btnGen").onclick = async () => {
+      const n = parseInt($("#genN").value, 10) || 100;
+      $("#btnGen").disabled = true;
+      $("#genMsg").className = "msg";
+      $("#genMsg").textContent = "正在生成…";
+      try {
+        const codes = await rpc("generate_codes", { n });
+        const text = (Array.isArray(codes) ? codes : []).join("\n");
+        $("#genOut").value = text;
+        $("#btnCopy").disabled = $("#btnDl").disabled = !text;
+        $("#genMsg").className = "msg ok";
+        $("#genMsg").textContent = `已生成 ${codes.length} 个，请导入闲鱼自动发货。`;
+        await refreshStats();
+        await refreshList();
+      } catch (e) {
+        $("#genMsg").className = "msg err";
+        $("#genMsg").textContent = e.message;
+      } finally {
+        $("#btnGen").disabled = false;
+      }
+    };
+    $("#btnCopy").onclick = async () => {
+      await navigator.clipboard.writeText($("#genOut").value);
+      $("#genMsg").className = "msg ok";
+      $("#genMsg").textContent = "已复制到剪贴板";
+    };
+    $("#btnDl").onclick = () => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([$("#genOut").value], { type: "text/plain" }));
+      a.download = `激活码-${new Date().toISOString().slice(0, 10)}.txt`;
+      a.click();
+    };
+
+    $("#tbody").onclick = async (e) => {
+      const revoke = e.target.dataset.revoke;
+      const unbind = e.target.dataset.unbind;
+      try {
+        if (revoke) {
+          if (!confirm(`确定作废 ${revoke}？买家下次打开网页会立刻失效。`)) return;
+          await rpc("admin_revoke", { p_code: revoke });
+        }
+        if (unbind) {
+          if (!confirm(`确定解绑 ${unbind}？买家可以在新设备上重新激活。`)) return;
+          await rpc("admin_unbind", { p_code: unbind });
+        }
+        if (revoke || unbind) { await refreshStats(); await refreshList(); }
+      } catch (err) {
+        $("#listMsg").className = "msg err";
+        $("#listMsg").textContent = err.message;
+      }
+    };
+
+    boot();
+  </script>
+</body>
+</html>

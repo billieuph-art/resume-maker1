@@ -73,6 +73,7 @@ textarea { resize: vertical; margin-top: 8px; }
 .color.active { box-shadow: 0 0 0 2px var(--ink); }
 .pro-status { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
 .pro-status a { color: #4f46e5; cursor: pointer; }
+.pro-status .pro-code { color: #94a3b8; word-break: break-all; }
 
 .preview-wrap { overflow: auto; padding: 24px; display: flex; justify-content: center; }
 .paper {
