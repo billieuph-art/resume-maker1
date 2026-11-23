@@ -97,10 +97,18 @@
     $$(".color").forEach((b) => (b.onclick = () => { state.color = b.dataset.c; renderPickers(); update(); }));
 
     $("#proStatus").innerHTML = pro
-      ? "已解锁全部高级模板，感谢支持！"
+      ? `已解锁全部高级模板<span class="pro-code">（${esc(formatCodeInput(localStorage.getItem(PRO_KEY) || ""))}）</span> · <a id="logoutPro">退出激活</a>`
       : `带「高级」标记的模板可以免费预览，导出前需要解锁。<a id="openPay">¥${CFG.price} 解锁全部</a>`;
     const op = $("#openPay");
     if (op) op.onclick = openPay;
+    const lo = $("#logoutPro");
+    if (lo) lo.onclick = () => {
+      if (!confirm("只是退出本机的激活状态，不会作废激活码。同一台设备可以再次输入激活码。确定退出吗？")) return;
+      localStorage.removeItem(PRO_KEY);
+      pro = false;
+      renderPickers(); update();
+      toast("已退出激活");
+    };
   }
 
   // ---------- 简历渲染 ----------
@@ -219,6 +227,11 @@
   function openPay() { $("#payModal").hidden = false; $("#codeMsg").textContent = ""; }
   function closePay() { $("#payModal").hidden = true; }
 
+  function formatCodeInput(raw) {
+    const s = raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+    return s.replace(/(.{4})(?=.)/g, "$1-");
+  }
+
   function initPay() {
     $("#price").textContent = CFG.price;
     $("#buyLink").href = CFG.buyUrl;
@@ -226,6 +239,17 @@
     if (CFG.payQrImage) { $("#payQr").src = CFG.payQrImage; $("#payQr").hidden = false; }
     $("#payClose").onclick = closePay;
     $("#payModal").onclick = (e) => { if (e.target.id === "payModal") closePay(); };
+    const codeInput = $("#codeInput");
+    codeInput.oninput = () => {
+      const start = codeInput.selectionStart;
+      const before = codeInput.value;
+      codeInput.value = formatCodeInput(before);
+      // 尽量保持光标位置，避免每敲一个字就跳到末尾
+      const diff = codeInput.value.length - before.length;
+      const pos = Math.max(0, (start || 0) + diff);
+      codeInput.setSelectionRange(pos, pos);
+    };
+    codeInput.onkeydown = (e) => { if (e.key === "Enter") $("#codeBtn").click(); };
     $("#codeBtn").onclick = async () => {
       const msg = $("#codeMsg");
       const btn = $("#codeBtn");
